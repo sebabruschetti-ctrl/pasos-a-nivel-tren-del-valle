@@ -1,0 +1,14 @@
+{
+  "name": "Pasos a Nivel · Tren del Valle",
+  "short_name": "PaN Tren del Valle",
+  "description": "Mapa integral de pasos a nivel General Roca – Cipolletti: relevamiento, plan de telecomando y modo campo.",
+  "lang": "es-AR",
+  "start_url": "mapa_completo.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1f2328",
+  "icons": [
+    { "src": "icono.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
