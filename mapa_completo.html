@@ -153,6 +153,14 @@
   .puesto { display: inline-block; background: #0a3069; color: #fff; border: 2px solid #fff; border-radius: 6px; box-shadow: 0 1px 6px rgba(0,0,0,.5); font-size: 11px; font-weight: 700;
             padding: 3px 6px; white-space: nowrap; cursor: pointer; }
   .hide-est .puesto .txt { display: none; }
+  /* Nuevos apeaderos: pin debajo de la vía (las estaciones van arriba), para no tapar los PaN */
+  .apd-pin { width: 24px; height: 24px; border-radius: 6px; background: #0a7b83; color: #fff; border: 2px solid #fff; box-shadow: 0 1px 5px rgba(0,0,0,.5);
+             display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; cursor: pointer; position: relative; }
+  .apd-pin::before { content: ""; position: absolute; left: 50%; top: -9px; transform: translateX(-50%); border: 5px solid transparent; border-bottom: 7px solid #0a7b83; border-top: 0; }
+  .apd-pin.nuevo { background: #0a7b83; outline: 2px dashed #0a7b83; outline-offset: 2px; }
+  .apd-label { background: #0a7b83; color: #fff; border: 0; border-radius: 4px; box-shadow: none; padding: 1px 6px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .apd-label::before { display: none; }
+  .hide-est .apd-label { display: none; }
 
   .poi { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); color: #fff; font-size: 10px; font-weight: 700;
          display: flex; align-items: center; justify-content: center; }
@@ -219,6 +227,7 @@
         <label><input type="checkbox" data-capa="automatica"><span class="sw t-automatica" style="background:var(--e0)"></span> Barrera automática existente<span class="n" id="n-automatica"></span></label>
         <label><input type="checkbox" data-capa="peatonal"><span class="sw t-peatonal" style="background:var(--e1)"></span> Avisos peatonales propuestos<span class="n" id="n-peatonal"></span></label>
         <div class="lg">Infraestructura y plan</div>
+        <label><input type="checkbox" data-capa="apeaderos" checked><span class="sw" style="background:#0a7b83"></span> Nuevos apeaderos<span class="n">4</span></label>
         <label><input type="checkbox" data-capa="estaciones" checked> Estaciones y predios<span class="n">6</span></label>
         <label><input type="checkbox" data-capa="tramos" checked> Plan de telecomando: tramos por etapa</label>
         <label><input type="checkbox" data-capa="puesto" checked> Puesto de mando y enlace por la vía</label>
@@ -280,10 +289,10 @@
           </select>
         </div>
         <label>Velocidad del tren <input type="range" id="sim-v" min="20" max="90" step="5" value="50"> <span id="sim-v-txt">50 km/h</span></label>
-        <label>Parada en estaciones <input type="range" id="sim-dwell" min="0" max="120" step="10" value="30"> <span id="sim-dwell-txt">30 s</span></label>
+        <label>Tiempo de parada <input type="range" id="sim-dwell" min="0" max="120" step="10" value="30"> <span id="sim-dwell-txt">30 s</span></label>
         <label>Aviso antes del tren <input type="range" id="sim-aviso" min="15" max="60" step="5" value="30"> <span id="sim-aviso-txt">30 s</span></label>
         <label>Barreras bajas antes del tren <input type="range" id="sim-bajada" min="10" max="40" step="5" value="20"> <span id="sim-bajada-txt">20 s</span></label>
-        <div class="lg">Para en</div>
+        <div class="lg">Para en (nuevos apeaderos; las estaciones viejas, opcionales)</div>
         <div id="sim-paradas"></div>
         <label><input type="checkbox" id="sim-seguir" checked> Seguir al tren</label>
         <div class="row" style="margin-top:6px">
@@ -1755,6 +1764,15 @@ const ESTACIONES = [
     eje: '≈ Km 1238+931 (sector asignado a SOF S.E.; el plano no marca eje)', limites: 'Km 1238+397,00 a Km 1239+480,00',
     metodo: 'Sector "Asignado a SOF S.E." del plano. Queda pasando el último PaN del relevamiento (Nº 56): se ubicó prolongando la traza ≈0,5 km.', osm: 18 },
 ];
+// ===== Nuevos apeaderos (progresiva = centro del nuevo andén) =====
+// Funcionan como paradas porque las estaciones actuales están ocupadas o en malas condiciones.
+const APEADEROS = [
+  { nombre: 'General Roca',         km: 1150.51, tipo: 'Ampliación de andén', estacion: 'General Roca' },
+  { nombre: 'Allen',                km: 1172.82, tipo: 'Ampliación de andén', estacion: 'Allen' },
+  { nombre: 'Fernández Oro',        km: 1181.42, tipo: 'Ampliación de andén', estacion: 'Fernández Oro' },
+  { nombre: 'Facultad de Medicina', km: 1185.31, tipo: 'Apeadero nuevo', estacion: null, nuevo: true },
+];
+const APD_RADIO_KM = 0.3;   // cruces que se listan en la ficha del apeadero
 const TREN_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c-4 0-8 .5-8 4v9.5A3.5 3.5 0 0 0 7.5 19L6 20.5v.5h2.2l2-2h3.6l2 2H18v-.5L16.5 19a3.5 3.5 0 0 0 3.5-3.5V6c0-3.5-4-4-8-4zM7.5 17a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM11 10H6V6h5v4zm2 0V6h5v4h-5zm3.5 7a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>';
 
 // ===== Tipo de calle y exposición (reemplazo del dato de tránsito) =====
@@ -1859,7 +1877,7 @@ const cluster = L.markerClusterGroup({
 const plain = L.layerGroup();
 const capaSel = L.layerGroup().addTo(map);   // muestra el PaN abierto aunque esté oculto por los filtros
 const line = L.polyline([], { color: '#444', weight: 2, opacity: .5, dashArray: '4 6' });
-const capaEstaciones = L.layerGroup(), capaTramos = L.layerGroup(), capaPuesto = L.layerGroup(), capaEntorno = L.layerGroup();
+const capaEstaciones = L.layerGroup(), capaTramos = L.layerGroup(), capaPuesto = L.layerGroup(), capaEntorno = L.layerGroup(), capaApeaderos = L.layerGroup();
 
 // Traza ordenada por km (PaN sin km repetidos) y punto sobre la traza para un km dado (extrapola en las puntas)
 let traza = [];
@@ -2067,6 +2085,56 @@ function showEstacion(e, pan) {
   setHash('estacion=' + encodeURIComponent(e.nombre));
   if (pan) centrarVisible(L.latLng(e.lat, e.lon), Math.max(map.getZoom(), 15));
 }
+// ===== Nuevos apeaderos =====
+const estacionDe = a => ESTACIONES.find(e => e.nombre === a.estacion);
+const crucesCerca = a => data.filter(p => Math.abs(p.km - a.km) <= APD_RADIO_KM)
+  .map(p => ({ p, d: Math.round((p.km - a.km) * 1000) })).sort((x, y) => Math.abs(x.d) - Math.abs(y.d));
+function apeaderoHtml(a) {
+  const [lat, lon] = puntoEnKm(a.km), est = estacionDe(a), cerca = crucesCerca(a);
+  const pegados = cerca.filter(c => Math.abs(c.d) <= 100 && ['barrera', 'peatonal', 'automatica'].includes(planOf(c.p).trat));
+  return `
+    <div class="head">
+      <button type="button" class="close" data-act="close" aria-label="Cerrar">✕</button>
+      <h2>Nuevo apeadero ${esc(a.nombre)}</h2>
+      <div class="prog">Progresiva Km ${fmtNum(a.km, 2)} · centro del nuevo andén</div>
+      <div class="row nav"><button type="button" data-act="link" title="Copiar link a este apeadero">🔗 Link</button></div>
+    </div>
+    <div class="body">
+      <div class="box" style="border-color:#0a7b83"><b>${esc(a.tipo)}</b>
+        ${a.nuevo ? 'Parada nueva, sin estación existente en este punto.' : `Funciona como apeadero (parada) porque la estación ${esc(a.estacion)} está ocupada o en malas condiciones.`}</div>
+      ${pegados.length ? `<div class="box" style="border-color:#9a6700"><b>Cruce pegado al andén</b>
+        ${pegados.map(c => `${esc(c.p.ubicacion)} (Km ${fmtNum(c.p.km, 2)}) a ${Math.abs(c.d)} m`).join('; ')}.
+        Con el tren detenido en el andén, el cierre telecomandado se ordena justo antes de la salida, no durante toda la parada.</div>` : ''}
+      <table class="datos">
+        <tr><th>Progresiva</th><td>Km ${fmtNum(a.km, 2)} (centro del nuevo andén)</td></tr>
+        ${est ? `<tr><th>Estación actual</th><td>${esc(est.nombre)}, a ≈ ${Math.round(Math.abs(a.km - est.km) * 1000)} m ${a.km > est.km ? 'hacia Cipolletti' : 'hacia Roca'}</td></tr>` : ''}
+        <tr><th>Cruces a menos<br>de ${APD_RADIO_KM * 1000} m</th><td>${cerca.length ? `<ul>${cerca.map(c =>
+          `<li><a href="#" data-pan="${c.p.numero}">PaN ${c.p.numero}</a> · ${esc(c.p.ubicacion)}: ${Math.abs(c.d)} m ${c.d > 0 ? 'hacia Cipolletti' : 'hacia Roca'} · ${esc(TRAT[planOf(c.p).trat])}</li>`).join('')}</ul>` : 'Ninguno'}</td></tr>
+        <tr><th>Coordenadas</th><td>${lat.toFixed(6)}, ${lon.toFixed(6)}<div class="aprox">Calculadas sobre la traza a partir de la progresiva</div></td></tr>
+      </table>
+      <div class="links">
+        <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}" target="_blank" rel="noopener">Cómo llegar</a>
+        <a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener">Abrir en Google Maps</a>
+      </div>
+    </div>`;
+}
+function showApeadero(a, pan) {
+  deselect();
+  openDetail(apeaderoHtml(a));
+  setHash('apeadero=' + encodeURIComponent(a.nombre));
+  if (pan) centrarVisible(L.latLng(...puntoEnKm(a.km)), Math.max(map.getZoom(), 16));
+}
+function buildApeaderos() {
+  capaApeaderos.clearLayers();
+  APEADEROS.forEach(a => {
+    L.marker(puntoEnKm(a.km), {
+      icon: L.divIcon({ className: 'pan-icon', iconSize: [24, 24], iconAnchor: [12, -12], html: `<div class="apd-pin${a.nuevo ? ' nuevo' : ''}">A</div>` }),
+      title: `Nuevo apeadero ${a.nombre} · Km ${fmtNum(a.km, 2)}`, zIndexOffset: 900
+    }).bindTooltip(`Apeadero ${a.nombre}`, { permanent: true, direction: 'bottom', offset: [0, 40], className: 'apd-label' })
+      .on('click', () => showApeadero(a)).addTo(capaApeaderos);
+  });
+}
+
 function buildEstaciones() {
   capaEstaciones.clearLayers();
   ESTACIONES.forEach(e => {
@@ -2205,6 +2273,7 @@ function abrirDesdeHash() {
   if (h.get('etapa') && ETAPAS[h.get('etapa')]) verEtapa(+h.get('etapa'));
   if (h.get('pan')) { const i = markers.findIndex(m => m.options.pan.numero === +h.get('pan')); if (i >= 0) select(i, true); }
   if (h.get('estacion')) { const e = ESTACIONES.find(x => x.nombre === h.get('estacion')); if (e) showEstacion(e, true); }
+  if (h.get('apeadero')) { const a = APEADEROS.find(x => x.nombre === h.get('apeadero')); if (a) showApeadero(a, true); }
 }
 
 // ===== Buscador =====
@@ -2218,6 +2287,7 @@ function buscar(q) {
     const txt = norm([p.ubicacion, p.localidad, p.progresiva, osmOf(p).cruce?.n, p.estado_actual].join(' | '));
     if (txt.includes(n)) res.push({ p });
   });
+  APEADEROS.forEach(a => { if (norm('apeadero nuevo ' + a.nombre).includes(n)) res.push({ a }); });
   ESTACIONES.forEach(e => { if (norm('estacion ' + e.nombre).includes(n)) res.push({ e }); });
   return res.slice(0, 10);
 }
@@ -2226,6 +2296,7 @@ function pintarResultados() {
   if (!q.trim()) { box.classList.remove('open'); return; }
   box.innerHTML = res.length ? res.map((r, k) => r.p
     ? `<button type="button" data-k="${k}" class="${k === 0 ? 'act' : ''}">PaN ${r.p.numero} · ${esc(r.p.localidad)}<small>${esc(r.p.ubicacion)} · ${esc(progOf(r.p))}${osmOf(r.p).cruce?.n ? ' · ' + esc(osmOf(r.p).cruce.n) : ''}</small></button>`
+    : r.a ? `<button type="button" data-k="${k}" class="${k === 0 ? 'act' : ''}">Nuevo apeadero ${esc(r.a.nombre)}<small>Km ${fmtNum(r.a.km, 2)} · ${esc(r.a.tipo)}</small></button>`
     : `<button type="button" data-k="${k}" class="${k === 0 ? 'act' : ''}">Estación ${esc(r.e.nombre)}<small>${r.e.plano ? 'Plano ADIF Nº ' + r.e.plano : 'Sin plano · aproximada'}</small></button>`).join('')
     : '<div class="vacio">Sin resultados</div>';
   box._res = res;
@@ -2235,6 +2306,7 @@ function elegirResultado(k) {
   const box = document.getElementById('q-res'), r = box._res?.[k]; if (!r) return;
   box.classList.remove('open');
   if (r.p) select(markers.findIndex(m => m.options.pan === r.p), true);
+  else if (r.a) showApeadero(r.a, true);
   else showEstacion(r.e, true);
 }
 
@@ -2292,7 +2364,7 @@ function applyLayers() {
   if (capa('cluster')) { cluster.addLayers(list); map.removeLayer(plain); map.addLayer(cluster); }
   else { list.forEach(m => plain.addLayer(m)); map.removeLayer(cluster); map.addLayer(plain); }
   mostrarSeleccion();
-  [['traza', line], ['estaciones', capaEstaciones], ['tramos', capaTramos], ['puesto', capaPuesto], ['entorno', capaEntorno]]
+  [['traza', line], ['apeaderos', capaApeaderos], ['estaciones', capaEstaciones], ['tramos', capaTramos], ['puesto', capaPuesto], ['entorno', capaEntorno]]
     .forEach(([k, l]) => capa(k) ? l.addTo(map) : map.removeLayer(l));
   document.getElementById('count').textContent = `Mostrando ${list.length} de ${data.length} PaN`;
   updateZoomClasses();
@@ -2319,18 +2391,27 @@ const sim = { t: 0, playing: false, last: 0, sched: null, cruces: [], tren: null
 const TREN_LARGO_KM = 0.06, REAPERTURA_S = 5;
 const simParam = id => +document.getElementById(id).value;
 
+// Paradas del tren: los nuevos apeaderos (las estaciones actuales están ocupadas o en malas condiciones) y la estación Cipolletti
+// como cabecera; J. J. Gómez y Guerrico quedan como paradas opcionales, apagadas
+const PARADAS = [
+  { nombre: 'Apeadero General Roca', km: 1150.51, punta: true },
+  { nombre: 'Cnel. Juan J. Gómez', km: 1155.832, opcional: true },
+  { nombre: 'C. M. Guerrico', km: 1164.098, opcional: true },
+  { nombre: 'Apeadero Allen', km: 1172.82 },
+  { nombre: 'Apeadero Fernández Oro', km: 1181.42 },
+  { nombre: 'Apeadero Facultad de Medicina', km: 1185.31 },
+  { nombre: 'Estación Cipolletti', km: 1188.153, punta: true },
+];
 function buildParadas() {
-  document.getElementById('sim-paradas').innerHTML = ESTACIONES.map((e, k) => {
-    const punta = k === 0 || k === ESTACIONES.length - 1;
-    return `<label title="${punta ? 'Estación de origen o destino' : ''}"><input type="checkbox" data-parada="${esc(e.nombre)}" checked ${punta ? 'disabled' : ''}> ${esc(e.nombre)}</label>`;
-  }).join('');
+  document.getElementById('sim-paradas').innerHTML = PARADAS.map(e =>
+    `<label title="${e.punta ? 'Origen o destino' : ''}"><input type="checkbox" data-parada="${esc(e.nombre)}" ${e.opcional ? '' : 'checked'} ${e.punta ? 'disabled' : ''}> ${esc(e.nombre)}</label>`).join('');
   document.querySelectorAll('input[data-parada]').forEach(el => el.addEventListener('change', () => simRecalcular()));
 }
 // conservarLog: al cambiar un parámetro durante la marcha se recalcula sin borrar el registro de eventos
 function simBuild(conservarLog) {
   const dir = simParam('sim-dir'), vel = simParam('sim-v'), dwell = simParam('sim-dwell');
   const para = new Set([...document.querySelectorAll('input[data-parada]:checked')].map(el => el.dataset.parada));
-  const paradas = ESTACIONES.filter((e, k) => k === 0 || k === ESTACIONES.length - 1 || para.has(e.nombre)).map(e => e.km).sort((a, b) => dir * (a - b));
+  const paradas = PARADAS.filter(e => e.punta || para.has(e.nombre)).map(e => e.km).sort((a, b) => dir * (a - b));
   const seg = []; let t = 0;
   for (let i = 0; i < paradas.length - 1; i++) {
     const a = paradas[i], b = paradas[i + 1], dur = Math.abs(b - a) / vel * 3600;
@@ -2394,7 +2475,7 @@ function simDraw() {
     }
     if (c.tArr > t && (!prox || c.tArr < prox.tArr)) prox = c;
   });
-  const est = parada ? ESTACIONES.reduce((a, e) => Math.abs(e.km - km) < Math.abs(a.km - km) ? e : a) : null;
+  const est = parada ? PARADAS.reduce((a, e) => Math.abs(e.km - km) < Math.abs(a.km - km) ? e : a) : null;
   document.getElementById('sim-estado').innerHTML =
     `<b>${reloj(sim.t)}</b> de ${reloj(sim.sched.fin)} · Km ${fmtNum(km, 2)}${est ? ` · detenido en ${esc(est.nombre)}` : ''}<br>` +
     (prox ? `Próximo cruce equipado: PaN ${prox.p.numero} (${esc(prox.p.localidad)}) en ${fmtNum(prox.tArr - sim.t, 0)} s` : 'Sin más cruces equipados en el recorrido.');
@@ -2506,7 +2587,7 @@ function load(arr) {
   const kms = data.map(p => +p.km), locs = [...new Set(data.map(p => p.localidad))];
   document.getElementById('tramo').textContent = `${locs[0]} → ${locs.at(-1)} · km ${fmtNum(Math.min(...kms), 2)} – ${fmtNum(Math.max(...kms), 2)} · ${data.length} PaN · 6 estaciones`;
   line.setLatLngs(traza.map(p => [p.lat, p.lon]));
-  buildMarkers(); buildEstaciones(); buildTramos(); buildPuesto(); buildResumen(); buildEntorno(); buildParadas();
+  buildMarkers(); buildEstaciones(); buildApeaderos(); buildTramos(); buildPuesto(); buildResumen(); buildEntorno(); buildParadas();
   buildFilters(); buildLeyendaColor(); buildLeyendaForma(); updateGpsPanel();
   const cnt = t => data.filter(p => planOf(p).trat === t).length;
   ['barrera', 'automatica', 'peatonal'].forEach(t => document.getElementById('n-' + t).textContent = cnt(t));
@@ -2518,9 +2599,9 @@ function load(arr) {
 map.on('zoomend', updateZoomClasses);
 document.querySelectorAll('input[data-capa]').forEach(el => el.addEventListener('change', applyLayers));
 document.querySelectorAll('input[name=modo]').forEach(el => el.addEventListener('change', recolor));
-document.getElementById('btn-todo').addEventListener('click', () => { setCapas(['pan', 'barrera', 'automatica', 'peatonal', 'estaciones', 'tramos', 'puesto', 'entorno', 'traza']); fit(); });
+document.getElementById('btn-todo').addEventListener('click', () => { setCapas(['pan', 'barrera', 'automatica', 'peatonal', 'apeaderos', 'estaciones', 'tramos', 'puesto', 'entorno', 'traza']); fit(); });
 document.getElementById('btn-plan').addEventListener('click', () => {
-  setCapas(['barrera', 'peatonal', 'estaciones', 'tramos', 'puesto', 'traza']);
+  setCapas(['barrera', 'peatonal', 'apeaderos', 'estaciones', 'tramos', 'puesto', 'traza']);
   document.querySelector('input[name=modo][value=etapa]').checked = true; recolor();
   document.getElementById('det-plan').open = true;
   fit([...visibles]);
