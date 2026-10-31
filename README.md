@@ -1,6 +1,6 @@
 # Pasos a nivel · Tren del Valle
 
-Mapas interactivos de los 56 pasos a nivel (PaN) del tramo **General Roca – Cipolletti** (km 1150,63 a 1187,65) y de sus 6 estaciones.
+Mapas interactivos de los 56 pasos a nivel (PaN) del tramo **General Roca – Cipolletti** (km 1150,63 a 1187,65) y de sus 6 estaciones. El mapa integral suma además el tramo con servicio diario **Cipolletti – Neuquén – Plottier** (PaN 57 a 91, km 1188,66 a 1209,18).
 
 **Ver en línea:** https://sebabruschetti-ctrl.github.io/pasos-a-nivel-tren-del-valle/inicio.html
 
@@ -26,6 +26,7 @@ Cada mapa es un único archivo HTML con los datos y las fotos incluidos: tambié
 ## Fuentes
 
 - Relevamiento de PaN Gral. Roca – Cipolletti (octubre de 2026).
+- Tramo Cipolletti – Plottier: planilla de necesidades de barreras telecomandadas, planilla totalizadora de PaN regionales y registros de relevamiento del 24/09/2020; ubicación de los cruces con OpenStreetMap (31/10/2026).
 - Planos ADIF de las estaciones (límite físico de la concesión). La estación General Roca no tiene plano: su ubicación es aproximada.
 - Vistas satelitales de las fichas: imágenes © Google.
 - Tipo de calle y entorno de cada cruce: © colaboradores de OpenStreetMap (ODbL), datos descargados el 21/10/2026.
